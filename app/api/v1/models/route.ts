@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { ensureTablesExist, getOrCreateModelPrices } from "@/lib/db/client";
 import { verifyApiToken } from "@/lib/auth";
+import { LRUCache } from "lru-cache";
+
+const cache = new LRUCache<string, ModelResponse>({
+  max: 100,
+  ttl: 1000 * 60, // 60 seconds
+});
 
 interface ModelInfo {
   id: string;
@@ -36,29 +42,36 @@ export async function GET(req: Request) {
       throw new Error("OPENWEBUI_DOMAIN environment variable is not set.");
     }
 
-    const apiUrl = domain.replace(/\/+$/, "") + "/api/models";
-
-    const response = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${process.env.OPENWEBUI_API_KEY}`,
-        Accept: "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      console.error("API response status:", response.status);
-      console.error("API response text:", await response.text());
-      throw new Error(`Failed to fetch models: ${response.status}`);
-    }
-
-    const responseText = await response.text();
-
+    const cacheKey = "models_list";
+    const cachedData = cache.get(cacheKey) as ModelResponse | undefined;
     let data: ModelResponse;
-    try {
-      data = JSON.parse(responseText);
-    } catch (error) {
-      console.error("Failed to parse JSON:", error);
-      throw new Error("Invalid JSON response from API");
+
+    if (cachedData) {
+      data = cachedData;
+    } else {
+      const apiUrl = domain.replace(/\/+$/, "") + "/api/models";
+
+      const response = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENWEBUI_API_KEY}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("API response status:", response.status);
+        console.error("API response text:", await response.text());
+        throw new Error(`Failed to fetch models: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      try {
+        data = JSON.parse(responseText);
+        cache.set(cacheKey, data);
+      } catch (error) {
+        console.error("Failed to parse JSON:", error);
+        throw new Error("Invalid JSON response from API");
+      }
     }
 
     if (!data || !Array.isArray(data.data)) {
@@ -68,10 +81,16 @@ export async function GET(req: Request) {
 
     const apiModelsMap = new Map();
     data.data.forEach((item) => {
+      let imageUrl = item.info?.meta?.profile_image_url || "/static/favicon.png";
+
+      if (imageUrl.startsWith("/")) {
+        imageUrl = domain.replace(/\/+$/, "") + imageUrl;
+      }
+
       apiModelsMap.set(String(item.id), {
         name: String(item.name),
         base_model_id: item.info?.base_model_id || "",
-        imageUrl: item.info?.meta?.profile_image_url || "/static/favicon.png",
+        imageUrl: imageUrl,
         system_prompt: item.info?.params?.system || "",
       });
     });

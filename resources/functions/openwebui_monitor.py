@@ -1,7 +1,7 @@
 """
 title: Usage Monitor
-author: VariantConst & OVINC CN
-git_url: https://github.com/VariantConst/OpenWebUI-Monitor.git
+author: Betsy & VariantConst & OVINC CN
+git_url: https://github.com/Besty0728/OpenWebUI-Monitor.git
 version: 0.3.6
 requirements: httpx
 license: MIT
@@ -68,6 +68,11 @@ class Filter:
         text = TRANSLATIONS[lang].get(key, TRANSLATIONS["en"][key])
         return text.format(**kwargs) if kwargs else text
 
+    async def get_client(self) -> AsyncClient:
+        if not hasattr(self, "_client") or self._client.is_closed:
+            self._client = AsyncClient()
+        return self._client
+
     async def request(self, client: AsyncClient, url: str, headers: dict, json_data: dict):
         json_data = json.loads(json.dumps(json_data, default=lambda o: o.dict() if hasattr(o, "dict") else str(o)))
 
@@ -85,7 +90,7 @@ class Filter:
         self.start_time = time.time()
         user_id = __user__.get("id", "default")
 
-        client = AsyncClient()
+        client = await self.get_client()
 
         try:
             response_data = await self.request(
@@ -106,9 +111,6 @@ class Filter:
                 raise err
             raise Exception(f"error calculating usage, {err}") from err
 
-        finally:
-            await client.aclose()
-
     async def outlet(
         self,
         body: dict,
@@ -123,7 +125,7 @@ class Filter:
         if self.outage_map.get(user_id, False):
             return body
 
-        client = AsyncClient()
+        client = await self.get_client()
 
         try:
             response_data = await self.request(
@@ -157,5 +159,3 @@ class Filter:
         except Exception as err:
             logger.exception(self.get_text("request_failed", error_msg=err))
             raise Exception(self.get_text("request_failed", error_msg=err))
-        finally:
-            await client.aclose()

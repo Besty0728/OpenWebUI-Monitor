@@ -129,8 +129,8 @@ const TestProgressPanel = ({
                     testingCount > 0
                       ? "testing"
                       : isComplete
-                      ? "success"
-                      : "error"
+                        ? "success"
+                        : "error"
                   }
                 />
               </div>
@@ -211,12 +211,12 @@ const TestProgressPanel = ({
                         }}
                         className="flex items-center gap-2 p-2 rounded-lg bg-muted/50"
                       >
-                        <Image
+                        <img
                           src={model.imageUrl}
                           alt={model.name}
                           width={24}
                           height={24}
-                          className="rounded-full"
+                          className="rounded-full w-6 h-6 object-cover"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">
@@ -380,11 +380,11 @@ export default function ModelsPage() {
           prevModels.map((model) =>
             model.id === id
               ? {
-                  ...model,
-                  input_price: Number(data.results[0].data.input_price),
-                  output_price: Number(data.results[0].data.output_price),
-                  per_msg_price: Number(data.results[0].data.per_msg_price),
-                }
+                ...model,
+                input_price: Number(data.results[0].data.input_price),
+                output_price: Number(data.results[0].data.output_price),
+                per_msg_price: Number(data.results[0].data.per_msg_price),
+              }
               : model
           )
         );
@@ -493,12 +493,12 @@ export default function ModelsPage() {
             onClick={() => handleTestSingleModel(record)}
           >
             {record.imageUrl && (
-              <Image
+              <img
                 src={record.imageUrl}
                 alt={record.name}
                 width={32}
                 height={32}
-                className="rounded-full object-cover"
+                className="rounded-full object-cover w-8 h-8"
               />
             )}
             {record.testStatus && (
@@ -636,8 +636,7 @@ export default function ModelsPage() {
         }
 
         message.success(
-          `${t("error.model.updateSuccess")} ${
-            data.results.filter((r: any) => r.success).length
+          `${t("error.model.updateSuccess")} ${data.results.filter((r: any) => r.success).length
           } ${t("error.model.numberOfModelPrice")}`
         );
       } catch (err) {
@@ -776,12 +775,12 @@ export default function ModelsPage() {
           >
             <div className="relative">
               {record.imageUrl && (
-                <Image
+                <img
                   src={record.imageUrl}
                   alt={record.name}
                   width={40}
                   height={40}
-                  className="rounded-xl object-cover transition-transform group-hover:scale-105"
+                  className="rounded-xl object-cover transition-transform group-hover:scale-105 w-10 h-10"
                 />
               )}
               <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-black/5"></div>
@@ -854,7 +853,7 @@ export default function ModelsPage() {
           try {
             await handlePriceUpdate(record.id, field, value);
             setEditingCell(null);
-          } catch {}
+          } catch { }
         }}
         t={t}
         disabled={isDisabled}
