@@ -20,7 +20,6 @@
     "notSet": "Not Set",
     "enterValue": "Enter Value"
   },
-
   "auth": {
     "accessToken": "Access Token",
     "accessTokenPlaceholder": "Please enter access token",
@@ -33,7 +32,6 @@
     "invalidToken": "Invalid access token",
     "loginSuccess": "Token verification successful"
   },
-
   "header": {
     "menu": {
       "copyApiKey": "Copy API KEY",
@@ -63,7 +61,6 @@
       "en": "EN"
     }
   },
-
   "home": {
     "features": {
       "models": {
@@ -80,7 +77,6 @@
       }
     }
   },
-
   "models": {
     "title": "Model Management",
     "description": "Manage price configurations for all available models.",
@@ -130,7 +126,9 @@
       },
       "perMsgPriceTooltip": "Set a negative value to charge by tokens instead of per message",
       "enterPrice": "Enter price",
-      "priceOverriddenByPerMsg": "Overridden by per message price"
+      "priceOverriddenByPerMsg": "Overridden by per message price",
+      "threshold": "Threshold",
+      "thresholdTooltip": "Scheme B: Minimum user balance required to start a conversation"
     },
     "testing": "Testing",
     "testComplete": "Test Complete",
@@ -139,7 +137,6 @@
     "testFailed": "Failed",
     "loading": "Loading model data..."
   },
-
   "users": {
     "title": "User Management",
     "description": "Manage user accounts and balances. You can view user details, adjust balances, or blacklist users.",
@@ -196,7 +193,6 @@
     },
     "loading": "Loading user data..."
   },
-
   "records": {
     "title": "Usage Records",
     "description": "View detailed model usage records for all users, including usage time, tokens consumed, and costs.",
@@ -211,7 +207,6 @@
       "balance": "Balance"
     }
   },
-
   "update": {
     "newVersion": "New Version Available",
     "currentVersion": "Current Version",
@@ -221,7 +216,6 @@
     "skipUpdate": "Skip Update",
     "goToUpdate": "Go to Update"
   },
-
   "backup": {
     "title": "Data Migration",
     "description": "Export or import database backups for migration and recovery",
@@ -238,7 +232,6 @@
       "error": "Import failed"
     }
   },
-
   "panel": {
     "header": "Usage Statistics Dashboard - OpenWebUI",
     "title": "Usage Statistics",

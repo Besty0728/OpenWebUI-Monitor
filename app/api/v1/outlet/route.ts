@@ -178,6 +178,11 @@ export async function POST(req: Request) {
       outputTokens,
       totalCost,
       newBalance,
+      model_info: {
+        input_price: Number(modelPrice.input_price),
+        output_price: Number(modelPrice.output_price),
+        per_msg_price: Number(modelPrice.per_msg_price)
+      },
       message: "Request successful",
     });
   } catch (error) {

@@ -79,10 +79,117 @@ type CommonQueryResult<T = any> = {
   rowCount: number;
 };
 
+// --- MOCK DB IMPLEMENTATION ---
+const IS_MOCK = process.env.MOCK_DB === "true";
+
+const mockStore = {
+  users: new Map([
+    ["default", { id: "default", name: "Mock User", email: "mock@local", balance: 100.0, role: "user" }]
+  ]),
+  modelPrices: new Map(),
+  usageRecords: [] as any[]
+};
+
+if (IS_MOCK) {
+  console.log("⚠️ RUNNING IN MOCK DB MODE");
+}
+
 export async function query<T = any>(
   text: string,
   params?: any[]
 ): Promise<CommonQueryResult<T>> {
+  if (IS_MOCK) {
+    const normalizedText = text.toLowerCase().trim();
+
+    // 1. Transaction commands
+    if (normalizedText === "begin" || normalizedText === "commit" || normalizedText === "rollback") {
+      return { rows: [], rowCount: 0 };
+    }
+
+    // 2. Model Prices Query (Outlet)
+    // SELECT id, name, input_price... FROM model_prices WHERE id = $1
+    if (normalizedText.includes("from model_prices") && normalizedText.includes("where id = $1")) {
+      const modelId = params?.[0] || "default-model";
+      return {
+        rows: [{
+          id: modelId,
+          name: modelId,
+          input_price: 60,
+          output_price: 60,
+          per_msg_price: -1,
+          updated_at: new Date()
+        }] as any,
+        rowCount: 1
+      };
+    }
+
+    // 3. User Balance Update (Outlet)
+    // UPDATE users SET balance = LEAST(...) WHERE id = $2 RETURNING balance
+    if (normalizedText.includes("update users") && normalizedText.includes("returning balance")) {
+      // Mock logic: just deduct a small amount or set to fixed
+      // Since parsing the SQL logic "LEAST(balance - ...)" is hard, we simulate a deduct.
+      const userId = params?.[1]; // Based on usage in outlet: [actualCost, userId]
+      const cost = params?.[0];
+
+      const user = mockStore.users.get(userId) || mockStore.users.get("default")!;
+      let newBalance = Number(user.balance) - Number(cost);
+      if (newBalance < 0) newBalance = 0;
+
+      // Update store
+      mockStore.users.set(user.id, { ...user, balance: newBalance });
+
+      return {
+        rows: [{ balance: newBalance }] as any,
+        rowCount: 1
+      };
+    }
+
+    // 4. Insert Usage Record
+    if (normalizedText.includes("insert into user_usage_records")) {
+      return { rows: [], rowCount: 1 };
+    }
+
+    // 5. User Table Checks (EnsureTables)
+    if (normalizedText.includes("information_schema")) {
+      return { rows: [{ exists: true }] as any, rowCount: 1 };
+    }
+
+    // 6. Generic Users Query
+    if (normalizedText.includes("from users")) {
+      return {
+        rows: Array.from(mockStore.users.values()) as any,
+        rowCount: mockStore.users.size
+      };
+    }
+
+    // 7. Update Model Prices (Mock)
+    if (normalizedText.includes("update model_prices") && normalizedText.includes("returning *")) {
+      // params: [id, input, output, per_msg, threshold]
+      const id = params?.[0];
+      const input = params?.[1];
+      const output = params?.[2];
+      const per_msg = params?.[3];
+      const threshold = params?.[4];
+
+      return {
+        rows: [{
+          id,
+          model_name: "Mock Model",
+          input_price: input,
+          output_price: output,
+          per_msg_price: per_msg,
+          threshold: threshold || 1.0,
+          updated_at: new Date()
+        }] as any,
+        rowCount: 1
+      };
+    }
+
+    console.log("[MockDB] Unhandled query:", text);
+    return { rows: [], rowCount: 0 };
+  }
+
+  // Original Implementation
   const client = await getClient();
   const startTime = Date.now();
 
@@ -125,7 +232,7 @@ export async function query<T = any>(
   }
 }
 
-if (typeof window === "undefined") {
+if (typeof window === "undefined" && !IS_MOCK) {
   process.on("SIGTERM", async () => {
     console.log("SIGTERM received, closing database connections");
     if (pgPool) {
@@ -140,7 +247,47 @@ if (typeof window === "undefined") {
 
 export { getClient };
 
+export async function updateModelPrice(
+  id: string,
+  input_price: number,
+  output_price: number,
+  per_msg_price: number,
+  threshold: number
+): Promise<ModelPrice | null> {
+  try {
+    const result = await query(
+      `UPDATE model_prices 
+       SET 
+         input_price = CAST($2 AS NUMERIC(10,6)),
+         output_price = CAST($3 AS NUMERIC(10,6)),
+         per_msg_price = CAST($4 AS NUMERIC(10,6)),
+         threshold = CAST($5 AS NUMERIC(10,6)),
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING *`,
+      [id, input_price, output_price, per_msg_price, threshold]
+    );
+
+    if (result.rows[0]) {
+      return {
+        id: result.rows[0].id,
+        name: result.rows[0].model_name,
+        input_price: Number(result.rows[0].input_price),
+        output_price: Number(result.rows[0].output_price),
+        per_msg_price: Number(result.rows[0].per_msg_price),
+        threshold: Number(result.rows[0].threshold || 1.0),
+        updated_at: result.rows[0].updated_at,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error updating model price:", error);
+    throw error;
+  }
+}
 export async function ensureTablesExist() {
+  if (IS_MOCK) return;
+
   try {
     const usersTableExists = await query(`
       SELECT EXISTS (
@@ -205,6 +352,7 @@ export async function ensureTablesExist() {
           input_price NUMERIC(10, 6) DEFAULT ${defaultInputPrice},
           output_price NUMERIC(10, 6) DEFAULT ${defaultOutputPrice},
           per_msg_price NUMERIC(10, 6) DEFAULT ${defaultPerMsgPrice},
+          threshold NUMERIC(10, 6) DEFAULT 1.0,
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
       `);
@@ -239,6 +387,22 @@ export async function ensureTablesExist() {
         `);
       } catch (error) {
         console.error("Error adding base_model_id column:", error);
+      }
+
+      try {
+        await query(`
+          DO $$ 
+          BEGIN 
+            BEGIN
+              ALTER TABLE model_prices 
+              ADD COLUMN threshold NUMERIC(10, 6) DEFAULT 1.0;
+            EXCEPTION 
+              WHEN duplicate_column THEN NULL;
+            END;
+          END $$;
+        `);
+      } catch (error) {
+        console.error("Error adding threshold column:", error);
       }
     }
 
@@ -289,6 +453,7 @@ export interface ModelPrice {
   input_price: number;
   output_price: number;
   per_msg_price: number;
+  threshold: number;
   updated_at: Date;
 }
 
@@ -307,6 +472,19 @@ export interface UserUsageRecord {
 export async function getOrCreateModelPrices(
   models: Array<{ id: string; name: string; base_model_id?: string }>
 ): Promise<ModelPrice[]> {
+  if (IS_MOCK) {
+    const modelPrices: ModelPrice[] = models.map(m => ({
+      id: m.id,
+      name: m.name,
+      input_price: 60,
+      output_price: 60,
+      per_msg_price: -1,
+      threshold: 1.0,
+      updated_at: new Date()
+    }));
+    return modelPrices;
+  }
+
   try {
     const defaultInputPrice = parseFloat(
       process.env.DEFAULT_MODEL_INPUT_PRICE || "60"
@@ -357,8 +535,8 @@ export async function getOrCreateModelPrices(
           : null;
 
         await query(
-          `INSERT INTO model_prices (id, name, input_price, output_price, per_msg_price)
-           VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO model_prices (id, name, input_price, output_price, per_msg_price, threshold)
+           VALUES ($1, $2, $3, $4, $5, 1.0)
            RETURNING *`,
           [
             model.id,
@@ -382,6 +560,7 @@ export async function getOrCreateModelPrices(
       input_price: Number(row.input_price),
       output_price: Number(row.output_price),
       per_msg_price: Number(row.per_msg_price),
+      threshold: Number(row.threshold || 1.0),
       updated_at: row.updated_at,
     }));
   } catch (error) {
@@ -390,41 +569,6 @@ export async function getOrCreateModelPrices(
   }
 }
 
-export async function updateModelPrice(
-  id: string,
-  input_price: number,
-  output_price: number,
-  per_msg_price: number
-): Promise<ModelPrice | null> {
-  try {
-    const result = await query(
-      `UPDATE model_prices 
-       SET 
-         input_price = CAST($2 AS NUMERIC(10,6)),
-         output_price = CAST($3 AS NUMERIC(10,6)),
-         per_msg_price = CAST($4 AS NUMERIC(10,6)),
-         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1
-       RETURNING *`,
-      [id, input_price, output_price, per_msg_price]
-    );
-
-    if (result.rows[0]) {
-      return {
-        id: result.rows[0].id,
-        name: result.rows[0].model_name,
-        input_price: Number(result.rows[0].input_price),
-        output_price: Number(result.rows[0].output_price),
-        per_msg_price: Number(result.rows[0].per_msg_price),
-        updated_at: result.rows[0].updated_at,
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error("Error updating model price:", error);
-    throw error;
-  }
-}
 
 export async function updateUserBalance(userId: string, balance: number) {
   try {
@@ -455,7 +599,7 @@ export const pool = {
           });
           return result;
         },
-        release: () => {},
+        release: () => { },
       };
     } else {
       return (pgPool || (getClient() as Pool)).connect();

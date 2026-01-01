@@ -34,8 +34,9 @@ export async function POST(request: NextRequest) {
         input_price: Number(update.input_price),
         output_price: Number(update.output_price),
         per_msg_price: Number(update.per_msg_price ?? -1),
+        threshold: Number(update.threshold ?? 1.0),
       }))
-      .filter((update: PriceUpdate) => {
+      .filter((update: PriceUpdate & { threshold: number }) => {
         const isValidPrice = (price: number) =>
           !isNaN(price) && isFinite(price);
 
@@ -43,7 +44,8 @@ export async function POST(request: NextRequest) {
           !update.id ||
           !isValidPrice(update.input_price) ||
           !isValidPrice(update.output_price) ||
-          !isValidPrice(update.per_msg_price)
+          !isValidPrice(update.per_msg_price) ||
+          !isValidPrice(update.threshold)
         ) {
           console.log("Skipping invalid data:", update);
           return false;
@@ -57,20 +59,22 @@ export async function POST(request: NextRequest) {
     );
 
     const results = await Promise.all(
-      validUpdates.map(async (update: PriceUpdate) => {
+      validUpdates.map(async (update: PriceUpdate & { threshold: number }) => {
         try {
           console.log("Updating model prices:", {
             id: update.id,
             input_price: update.input_price,
             output_price: update.output_price,
             per_msg_price: update.per_msg_price,
+            threshold: update.threshold,
           });
 
           const result = await updateModelPrice(
             update.id,
             update.input_price,
             update.output_price,
-            update.per_msg_price
+            update.per_msg_price,
+            update.threshold
           );
 
           console.log("Update results:", {

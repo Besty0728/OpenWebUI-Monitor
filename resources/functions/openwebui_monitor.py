@@ -62,6 +62,15 @@ class Filter:
         self.valves = self.Valves()
         self.outage_map: Dict[str, bool] = {}
         self.start_time: Optional[float] = None
+        
+        # Local Caches for Optimistic Admission
+        # Structure: {user_id: balance}
+        self.user_caches: Dict[str, float] = {}
+        # Structure: {model_id: estimated_threshold_cost}
+        self.model_thresholds: Dict[str, float] = {}
+        
+        # Safe threshold to allow admission (e.g. at least 1.0 unit of currency)
+        self.SAFE_ADMISSION_THRESHOLD = 1.0
 
     def get_text(self, key: str, **kwargs) -> str:
         lang = self.valves.language if self.valves.language in TRANSLATIONS else "en"
@@ -89,7 +98,23 @@ class Filter:
         __metadata__ = __metadata__ or {}
         self.start_time = time.time()
         user_id = __user__.get("id", "default")
+        model_id = body.get("model", "default")
 
+        # --- Optimistic Admission Check ---
+        cached_balance = self.user_caches.get(user_id)
+        
+        # Determine threshold for this model
+        # Default to SAFE_ADMISSION_THRESHOLD if model usage is unknown
+        # Or use the dynamically synced threshold from previous outlet
+        threshold = self.model_thresholds.get(model_id, self.SAFE_ADMISSION_THRESHOLD)
+
+        if cached_balance is not None and cached_balance > threshold:
+            # VIP Fast Path: Local admission granted
+            # Skip network request to Monitor backend
+            logger.info(f"Local admission granted for {user_id}. Balance: {cached_balance}, Threshold: {threshold}")
+            return body
+        
+        # --- Fallback: Network Admission Check ---
         client = await self.get_client()
 
         try:
@@ -99,10 +124,14 @@ class Filter:
                 headers={"Authorization": f"Bearer {self.valves.api_key}"},
                 json_data={"user": __user__, "body": body},
             )
-            self.outage_map[user_id] = response_data.get("balance", 0) <= 0
+            
+            balance = response_data.get("balance", 0)
+            self.user_caches[user_id] = balance
+            
+            self.outage_map[user_id] = balance <= 0
             if self.outage_map[user_id]:
-                logger.info(self.get_text("insufficient_balance", balance=response_data.get("balance", 0)))
-                raise CustomException(self.get_text("insufficient_balance", balance=response_data.get("balance", 0)))
+                logger.info(self.get_text("insufficient_balance", balance=balance))
+                raise CustomException(self.get_text("insufficient_balance", balance=balance))
             return body
 
         except Exception as err:
@@ -121,6 +150,7 @@ class Filter:
         __user__ = __user__ or {}
         __metadata__ = __metadata__ or {}
         user_id = __user__.get("id", "default")
+        model_id = body.get("model", "default")
 
         if self.outage_map.get(user_id, False):
             return body
@@ -134,6 +164,26 @@ class Filter:
                 headers={"Authorization": f"Bearer {self.valves.api_key}"},
                 json_data={"user": __user__, "body": body},
             )
+
+            # --- Dynamic Sync: Update Local Caches ---
+            new_balance = response_data.get("newBalance")
+            if new_balance is not None:
+                self.user_caches[user_id] = float(new_balance)
+            
+            model_info = response_data.get("model_info")
+            if model_info:
+                # Estimate threshold for next time: 
+                # e.g. Input Price (per 1M tokens) * 0.001 (1k tokens) as a safety buffer
+                input_price = float(model_info.get("input_price", 0))
+                per_msg_price = float(model_info.get("per_msg_price", -1))
+                
+                if per_msg_price > 0:
+                    self.model_thresholds[model_id] = per_msg_price
+                elif input_price > 0:
+                     # Use 1k tokens cost as threshold
+                    self.model_thresholds[model_id] = input_price / 1000.0
+            
+            # ----------------------------------------
 
             stats_list = []
             if self.valves.show_tokens:

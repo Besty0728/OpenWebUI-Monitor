@@ -68,6 +68,7 @@ export async function getOrCreateModelPrice(
       input_price: Number(result.rows[0].input_price),
       output_price: Number(result.rows[0].output_price),
       per_msg_price: Number(result.rows[0].per_msg_price),
+      threshold: Number(result.rows[0].threshold || 1.0),
       updated_at: result.rows[0].updated_at,
     };
   } catch (error: any) {

@@ -39,6 +39,7 @@ interface Model {
   input_price: number;
   output_price: number;
   per_msg_price: number;
+  threshold: number;
   testStatus?: "success" | "error" | "testing";
   syncStatus?: "syncing" | "success" | "error";
 }
@@ -253,7 +254,7 @@ export default function ModelsPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{
     id: string;
-    field: "input_price" | "output_price" | "per_msg_price";
+    field: "input_price" | "output_price" | "per_msg_price" | "threshold";
   } | null>(null);
   const [testing, setTesting] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -279,6 +280,7 @@ export default function ModelsPage() {
             input_price: model.input_price ?? 60,
             output_price: model.output_price ?? 60,
             per_msg_price: model.per_msg_price ?? -1,
+            threshold: (model as any).threshold ?? 1.0,
           }))
         );
       } catch (err) {
@@ -327,7 +329,7 @@ export default function ModelsPage() {
 
   const handlePriceUpdate = async (
     id: string,
-    field: "input_price" | "output_price" | "per_msg_price",
+    field: "input_price" | "output_price" | "per_msg_price" | "threshold",
     value: number
   ): Promise<void> => {
     try {
@@ -351,6 +353,8 @@ export default function ModelsPage() {
         field === "output_price" ? validValue : model.output_price;
       const per_msg_price =
         field === "per_msg_price" ? validValue : model.per_msg_price;
+      const threshold =
+        field === "threshold" ? validValue : (model.threshold || 1.0);
 
       const token = localStorage.getItem("access_token");
       const response = await fetch("/api/v1/models/price", {
@@ -366,6 +370,7 @@ export default function ModelsPage() {
               input_price: Number(input_price),
               output_price: Number(output_price),
               per_msg_price: Number(per_msg_price),
+              threshold: Number(threshold),
             },
           ],
         }),
@@ -384,6 +389,7 @@ export default function ModelsPage() {
                 input_price: Number(data.results[0].data.input_price),
                 output_price: Number(data.results[0].data.output_price),
                 per_msg_price: Number(data.results[0].data.per_msg_price),
+                threshold: Number(data.results[0].data.threshold),
               }
               : model
           )
@@ -563,6 +569,22 @@ export default function ModelsPage() {
       sorter: (a, b) => a.per_msg_price - b.per_msg_price,
       sortDirections: ["descend", "ascend", "descend"],
       render: (_, record) => renderPriceCell("per_msg_price", record, true),
+    },
+    {
+      title: (
+        <span>
+          {t("models.table.threshold") || "预扣费额度"}{" "}
+          <Tooltip title={t("models.table.thresholdTooltip") || "Scheme B: 用户最低余额门槛"}>
+            <InfoCircleOutlined className="text-gray-400 cursor-help" />
+          </Tooltip>
+        </span>
+      ),
+      key: "threshold",
+      width: 130,
+      dataIndex: "threshold",
+      sorter: (a, b) => (a.threshold || 0) - (b.threshold || 0),
+      sortDirections: ["descend", "ascend", "descend"],
+      render: (_, record) => renderPriceCell("threshold", record, true),
     },
   ];
 
@@ -835,7 +857,7 @@ export default function ModelsPage() {
   };
 
   const renderPriceCell = (
-    field: "input_price" | "output_price" | "per_msg_price",
+    field: "input_price" | "output_price" | "per_msg_price" | "threshold",
     record: Model,
     showTooltip: boolean = true
   ) => {

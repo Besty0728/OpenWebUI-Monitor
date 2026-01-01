@@ -136,7 +136,7 @@ export default function Header() {
     setIsCheckingUpdate(true);
     try {
       const response = await fetch(
-        "https://api.github.com/repos/variantconst/openwebui-monitor/releases/latest"
+        "https://api.github.com/repos/Besty0728/OpenWebUI-Monitor/releases/latest"
       );
       const data = await response.json();
       const latestVersion = data.tag_name;
@@ -166,7 +166,7 @@ export default function Header() {
 
             const handleUpdate = () => {
               window.open(
-                "https://github.com/VariantConst/OpenWebUI-Monitor/releases/latest",
+                "https://github.com/Besty0728/OpenWebUI-Monitor/releases/latest",
                 "_blank"
               );
               handleClose();
@@ -288,9 +288,9 @@ export default function Header() {
   const menuItems = [
     ...(!isTokenPage
       ? navigationItems.map((item) => ({
-          ...item,
-          onClick: () => router.push(item.path),
-        }))
+        ...item,
+        onClick: () => router.push(item.path),
+      }))
       : []),
     {
       icon: <Copy className="w-5 h-5" />,

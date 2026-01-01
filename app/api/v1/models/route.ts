@@ -34,6 +34,47 @@ export async function GET(req: Request) {
     return authError;
   }
 
+  // --- MOCK MODE FOR LOCAL DEV ---
+  if (process.env.MOCK_DB === "true") {
+    const mockModels = [
+      {
+        id: "gpt-4-turbo",
+        base_model_id: "gpt-4",
+        name: "GPT-4 Turbo (Mock)",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg",
+        system_prompt: "You are a helpful assistant.",
+        input_price: 30,
+        output_price: 60,
+        per_msg_price: -1,
+        updated_at: new Date()
+      },
+      {
+        id: "claude-3-opus",
+        base_model_id: "claude-3",
+        name: "Claude 3 Opus (Mock)",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Anthropic_logo.svg/1024px-Anthropic_logo.svg.png",
+        system_prompt: "You are Claude.",
+        input_price: 15,
+        output_price: 75,
+        per_msg_price: -1,
+        updated_at: new Date()
+      },
+      {
+        id: "gemini-pro",
+        base_model_id: "gemini",
+        name: "Gemini Pro (Mock)",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg",
+        system_prompt: "You are Gemini.",
+        input_price: 5,
+        output_price: 15,
+        per_msg_price: 0.1,
+        updated_at: new Date()
+      }
+    ];
+    return NextResponse.json(mockModels);
+  }
+  // -------------------------------
+
   try {
     await ensureTablesExist();
 
