@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { Progress } from "antd";
 import { toast, Toaster } from "sonner";
 import { EditableCell } from "@/components/editable-cell";
+import { IconPickerModal, setIconOverride, getIconOverrides } from "@/components/IconPickerModal";
 
 interface ModelResponse {
   id: string;
@@ -260,6 +261,8 @@ export default function ModelsPage() {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [isTestComplete, setIsTestComplete] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [selectedModelForIcon, setSelectedModelForIcon] = useState<Model | null>(null);
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -274,14 +277,23 @@ export default function ModelsPage() {
           throw new Error(t("error.model.failToFetchModels"));
         }
         const data = (await response.json()) as ModelResponse[];
+        // 获取用户自定义的图标配置
+        const iconOverrides = getIconOverrides();
         setModels(
-          data.map((model: ModelResponse) => ({
-            ...model,
-            input_price: model.input_price ?? 60,
-            output_price: model.output_price ?? 60,
-            per_msg_price: model.per_msg_price ?? -1,
-            threshold: (model as any).threshold ?? 1.0,
-          }))
+          data.map((model: ModelResponse) => {
+            // 如果有自定义图标配置，使用自定义图标
+            const customIcon = iconOverrides[model.id];
+            return {
+              ...model,
+              input_price: model.input_price ?? 60,
+              output_price: model.output_price ?? 60,
+              per_msg_price: model.per_msg_price ?? -1,
+              threshold: (model as any).threshold ?? 1.0,
+              imageUrl: customIcon
+                ? `/model-icons/${customIcon}`
+                : model.imageUrl,
+            };
+          })
         );
       } catch (err) {
         setError(
@@ -494,39 +506,46 @@ export default function ModelsPage() {
       width: 200,
       render: (_, record) => (
         <div className="flex items-center gap-3 relative">
-          <div
-            className="relative cursor-pointer"
-            onClick={() => handleTestSingleModel(record)}
-          >
-            {record.imageUrl && (
-              <img
-                src={record.imageUrl}
-                alt={record.name}
-                width={32}
-                height={32}
-                className="rounded-full object-cover w-8 h-8"
-              />
-            )}
-            {record.testStatus && (
-              <div className="absolute -top-1 -right-1">
-                {record.testStatus === "testing" && (
-                  <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center">
-                    <div className="w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                  </div>
-                )}
-                {record.testStatus === "success" && (
-                  <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center">
-                    <CheckOutlined className="text-[10px] text-green-500" />
-                  </div>
-                )}
-                {record.testStatus === "error" && (
-                  <div className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center">
-                    <CloseOutlined className="text-[10px] text-red-500" />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <Tooltip title={t("models.iconPicker.hint") || "左键测试 | 右键自定义图标"}>
+            <div
+              className="relative cursor-pointer group"
+              onClick={() => handleTestSingleModel(record)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setSelectedModelForIcon(record);
+                setIconPickerOpen(true);
+              }}
+            >
+              {record.imageUrl && (
+                <img
+                  src={record.imageUrl}
+                  alt={record.name}
+                  width={32}
+                  height={32}
+                  className="rounded-full object-cover w-8 h-8 group-hover:ring-2 group-hover:ring-primary/50 transition-all"
+                />
+              )}
+              {record.testStatus && (
+                <div className="absolute -top-1 -right-1">
+                  {record.testStatus === "testing" && (
+                    <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                    </div>
+                  )}
+                  {record.testStatus === "success" && (
+                    <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center">
+                      <CheckOutlined className="text-[10px] text-green-500" />
+                    </div>
+                  )}
+                  {record.testStatus === "error" && (
+                    <div className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center">
+                      <CloseOutlined className="text-[10px] text-red-500" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </Tooltip>
           <div className="font-medium min-w-0 flex-1">
             <div className="truncate">{record.name}</div>
             <div className="text-xs text-gray-500 truncate opacity-60">
@@ -594,6 +613,7 @@ export default function ModelsPage() {
       input_price: model.input_price,
       output_price: model.output_price,
       per_msg_price: model.per_msg_price,
+      threshold: model.threshold,
     }));
 
     const blob = new Blob([JSON.stringify(priceData, null, 2)], {
@@ -623,9 +643,13 @@ export default function ModelsPage() {
           models.some((model) => model.id === item.id)
         );
 
+        const token = localStorage.getItem("access_token");
         const response = await fetch("/api/v1/models/price", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
           body: JSON.stringify({
             updates: validUpdates,
           }),
@@ -864,7 +888,8 @@ export default function ModelsPage() {
     const isEditing =
       editingCell?.id === record.id && editingCell?.field === field;
     const currentValue = Number(record[field]);
-    const isDisabled = field !== "per_msg_price" && record.per_msg_price >= 0;
+    // threshold 字段应始终可编辑，不受 per_msg_price 影响
+    const isDisabled = field !== "per_msg_price" && field !== "threshold" && record.per_msg_price >= 0;
 
     return (
       <EditableCell
@@ -1072,6 +1097,41 @@ export default function ModelsPage() {
           </div>
         )}
       </div>
+
+      {/* 图标选择弹窗 */}
+      <IconPickerModal
+        open={iconPickerOpen}
+        modelId={selectedModelForIcon?.id || ""}
+        modelName={selectedModelForIcon?.name || ""}
+        currentIcon={selectedModelForIcon?.imageUrl || ""}
+        onClose={() => {
+          setIconPickerOpen(false);
+          setSelectedModelForIcon(null);
+        }}
+        onSelect={(iconFile) => {
+          if (selectedModelForIcon) {
+            setIconOverride(selectedModelForIcon.id, iconFile);
+            // 更新模型列表中的图标
+            setModels((prev) =>
+              prev.map((m) =>
+                m.id === selectedModelForIcon.id
+                  ? {
+                    ...m,
+                    imageUrl: iconFile
+                      ? `/model-icons/${iconFile}`
+                      : m.imageUrl,
+                  }
+                  : m
+              )
+            );
+            toast.success(
+              iconFile
+                ? t("models.iconPicker.success") || "图标已更新"
+                : t("models.iconPicker.reset") || "已恢复自动匹配"
+            );
+          }
+        }}
+      />
     </div>
   );
 }

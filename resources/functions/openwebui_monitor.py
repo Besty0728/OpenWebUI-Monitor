@@ -2,7 +2,7 @@
 title: Usage Monitor
 author: Betsy & VariantConst & OVINC CN
 git_url: https://github.com/Besty0728/OpenWebUI-Monitor.git
-version: 0.3.6
+version: 0.3.7
 requirements: httpx
 license: MIT
 """
@@ -172,16 +172,20 @@ class Filter:
             
             model_info = response_data.get("model_info")
             if model_info:
-                # Estimate threshold for next time: 
-                # e.g. Input Price (per 1M tokens) * 0.001 (1k tokens) as a safety buffer
-                input_price = float(model_info.get("input_price", 0))
-                per_msg_price = float(model_info.get("per_msg_price", -1))
-                
-                if per_msg_price > 0:
-                    self.model_thresholds[model_id] = per_msg_price
-                elif input_price > 0:
-                     # Use 1k tokens cost as threshold
-                    self.model_thresholds[model_id] = input_price / 1000.0
+                # Priority 1: Use backend-defined threshold if available
+                backend_threshold = float(model_info.get("threshold", 0))
+                if backend_threshold > 0:
+                    self.model_thresholds[model_id] = backend_threshold
+                else:
+                    # Priority 2: Estimate threshold from pricing
+                    per_msg_price = float(model_info.get("per_msg_price", -1))
+                    input_price = float(model_info.get("input_price", 0))
+                    
+                    if per_msg_price > 0:
+                        self.model_thresholds[model_id] = per_msg_price
+                    elif input_price > 0:
+                        # Use 1k tokens cost as threshold
+                        self.model_thresholds[model_id] = input_price / 1000.0
             
             # ----------------------------------------
 

@@ -18,13 +18,14 @@ interface ModelPrice {
   input_price: number;
   output_price: number;
   per_msg_price: number;
+  threshold: number;
 }
 
 type DbClient = ReturnType<typeof createClient> | Pool | PoolClient;
 
 async function getModelPrice(modelId: string): Promise<ModelPrice | null> {
   const result = await query(
-    `SELECT id, name, input_price, output_price, per_msg_price 
+    `SELECT id, name, input_price, output_price, per_msg_price, threshold 
      FROM model_prices 
      WHERE id = $1`,
     [modelId]
@@ -56,6 +57,7 @@ async function getModelPrice(modelId: string): Promise<ModelPrice | null> {
     input_price: defaultInputPrice,
     output_price: defaultOutputPrice,
     per_msg_price: -1,
+    threshold: 1.0,
   };
 }
 
@@ -181,7 +183,8 @@ export async function POST(req: Request) {
       model_info: {
         input_price: Number(modelPrice.input_price),
         output_price: Number(modelPrice.output_price),
-        per_msg_price: Number(modelPrice.per_msg_price)
+        per_msg_price: Number(modelPrice.per_msg_price),
+        threshold: Number(modelPrice.threshold || 1.0)
       },
       message: "Request successful",
     });
