@@ -1,41 +1,16 @@
 import {
-  createClient,
+  db,
   QueryResult as VercelQueryResult,
 } from "@vercel/postgres";
 import { Pool, PoolClient } from "pg";
 
 const isVercel = process.env.VERCEL === "1";
 
-let vercelPool: {
-  client: ReturnType<typeof createClient>;
-  isConnected: boolean;
-} | null = null;
 let pgPool: Pool | null = null;
-
-async function getVercelClient() {
-  if (!vercelPool) {
-    vercelPool = {
-      client: createClient(),
-      isConnected: false,
-    };
-  }
-
-  if (!vercelPool.isConnected) {
-    try {
-      await vercelPool.client.connect();
-      vercelPool.isConnected = true;
-    } catch (error) {
-      console.error("Vercel DB connection error:", error);
-      throw error;
-    }
-  }
-
-  return vercelPool.client;
-}
 
 function getClient() {
   if (isVercel) {
-    return getVercelClient();
+    return null;
   } else {
     if (!pgPool) {
       const config = {
@@ -87,7 +62,8 @@ const mockStore = {
     ["default", { id: "default", name: "Mock User", email: "mock@local", balance: 100.0, role: "user" }]
   ]),
   modelPrices: new Map(),
-  usageRecords: [] as any[]
+  usageRecords: [] as any[],
+  providers: [] as any[]
 };
 
 if (IS_MOCK) {
@@ -101,41 +77,38 @@ export async function query<T = any>(
   if (IS_MOCK) {
     const normalizedText = text.toLowerCase().trim();
 
-    // 1. Transaction commands
     if (normalizedText === "begin" || normalizedText === "commit" || normalizedText === "rollback") {
       return { rows: [], rowCount: 0 };
     }
 
-    // 2. Model Prices Query (Outlet)
-    // SELECT id, name, input_price... FROM model_prices WHERE id = $1
     if (normalizedText.includes("from model_prices") && normalizedText.includes("where id = $1")) {
       const modelId = params?.[0] || "default-model";
+      const model = mockStore.modelPrices.get(modelId);
+      if (model) return { rows: [model], rowCount: 1 };
+      
       return {
         rows: [{
           id: modelId,
           name: modelId,
+          base_model_id: null,
           input_price: 60,
           output_price: 60,
           per_msg_price: -1,
+          threshold: 1.0,
           updated_at: new Date()
         }] as any,
         rowCount: 1
       };
     }
 
-    // 3. User Balance Update (Outlet)
-    // UPDATE users SET balance = LEAST(...) WHERE id = $2 RETURNING balance
     if (normalizedText.includes("update users") && normalizedText.includes("returning balance")) {
-      // Mock logic: just deduct a small amount or set to fixed
-      // Since parsing the SQL logic "LEAST(balance - ...)" is hard, we simulate a deduct.
-      const userId = params?.[1]; // Based on usage in outlet: [actualCost, userId]
+      const userId = params?.[1]; 
       const cost = params?.[0];
 
       const user = mockStore.users.get(userId) || mockStore.users.get("default")!;
       let newBalance = Number(user.balance) - Number(cost);
       if (newBalance < 0) newBalance = 0;
 
-      // Update store
       mockStore.users.set(user.id, { ...user, balance: newBalance });
 
       return {
@@ -144,17 +117,14 @@ export async function query<T = any>(
       };
     }
 
-    // 4. Insert Usage Record
     if (normalizedText.includes("insert into user_usage_records")) {
       return { rows: [], rowCount: 1 };
     }
 
-    // 5. User Table Checks (EnsureTables)
     if (normalizedText.includes("information_schema")) {
       return { rows: [{ exists: true }] as any, rowCount: 1 };
     }
 
-    // 6. Generic Users Query
     if (normalizedText.includes("from users")) {
       return {
         rows: Array.from(mockStore.users.values()) as any,
@@ -162,73 +132,60 @@ export async function query<T = any>(
       };
     }
 
-    // 7. Update Model Prices (Mock)
     if (normalizedText.includes("update model_prices") && normalizedText.includes("returning *")) {
-      // params: [id, input, output, per_msg, threshold]
       const id = params?.[0];
       const input = params?.[1];
       const output = params?.[2];
       const per_msg = params?.[3];
       const threshold = params?.[4];
 
+      const model = {
+        id,
+        model_name: "Mock Model",
+        input_price: input,
+        output_price: output,
+        per_msg_price: per_msg,
+        threshold: threshold || 1.0,
+        updated_at: new Date()
+      };
+      
+      mockStore.modelPrices.set(id, model);
+
       return {
-        rows: [{
-          id,
-          model_name: "Mock Model",
-          input_price: input,
-          output_price: output,
-          per_msg_price: per_msg,
-          threshold: threshold || 1.0,
-          updated_at: new Date()
-        }] as any,
+        rows: [model] as any,
         rowCount: 1
       };
     }
+    
+    // API Providers Mock
+    if (normalizedText.includes("from api_providers")) {
+        // Simple mock for providers
+        return { rows: [], rowCount: 0 };
+    }
 
-    console.log("[MockDB] Unhandled query:", text);
+    // console.log("[MockDB] Unhandled query:", text);
     return { rows: [], rowCount: 0 };
   }
 
-  // Original Implementation
-  const client = await getClient();
-  const startTime = Date.now();
-
-  if (isVercel) {
-    try {
-      const result = await (client as ReturnType<typeof createClient>).query({
-        text,
-        values: params || [],
-      });
+  try {
+    if (isVercel) {
+      // Use @vercel/postgres 'db' which uses a pool
+      const result = await db.query(text, params);
       return {
         rows: result.rows,
         rowCount: result.rowCount || 0,
       };
-    } catch (error) {
-      console.error("[DB Query Error]", error);
-      if (vercelPool) {
-        vercelPool.isConnected = false;
-      }
-      throw error;
-    }
-  } else {
-    let pgClient;
-    try {
-      pgClient = await (client as Pool).connect();
-      const result = await pgClient.query(text, params);
+    } else {
+      const client = getClient() as Pool;
+      const result = await client.query(text, params);
       return {
         rows: result.rows,
         rowCount: result.rowCount || 0,
       };
-    } catch (error) {
-      console.error("[DB Query Error]", error);
-      console.error(`Query text: ${text}`);
-      console.error(`Query params:`, params);
-      throw error;
-    } finally {
-      if (pgClient) {
-        pgClient.release();
-      }
     }
+  } catch (error) {
+    console.error("[DB Query Error]", error);
+    throw error;
   }
 }
 
@@ -238,10 +195,7 @@ if (typeof window === "undefined" && !IS_MOCK) {
     if (pgPool) {
       await pgPool.end();
     }
-    if (vercelPool?.client) {
-      await vercelPool.client.end();
-      vercelPool.isConnected = false;
-    }
+    // Vercel db pool handles itself
   });
 }
 
@@ -285,10 +239,12 @@ export async function updateModelPrice(
     throw error;
   }
 }
+
 export async function ensureTablesExist() {
   if (IS_MOCK) return;
 
   try {
+    // 1. Users Table
     const usersTableExists = await query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -326,6 +282,7 @@ export async function ensureTablesExist() {
       }
     }
 
+    // 2. Model Prices Table
     const modelPricesTableExists = await query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -406,6 +363,7 @@ export async function ensureTablesExist() {
       }
     }
 
+    // 3. User Usage Records Table
     const userUsageRecordsTableExists = await query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -428,6 +386,36 @@ export async function ensureTablesExist() {
           FOREIGN KEY (user_id) REFERENCES users(id)
         );
       `);
+    }
+
+    // 4. API Providers Table
+    const apiProvidersTableExists = await query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'api_providers'
+      );
+    `);
+
+    if (!apiProvidersTableExists.rows[0].exists) {
+      await query(`
+        CREATE TABLE IF NOT EXISTS api_providers (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT NOT NULL,
+          type TEXT NOT NULL CHECK (type IN ('newapi', 'openrouter', 'deepseek')),
+          icon TEXT,
+          config JSONB NOT NULL DEFAULT '{}',
+          enabled BOOLEAN DEFAULT true,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    } else {
+        try {
+             await query(`ALTER TABLE api_providers DROP CONSTRAINT IF EXISTS api_providers_type_check`);
+             await query(`ALTER TABLE api_providers ADD CONSTRAINT api_providers_type_check CHECK (type IN ('newapi', 'openrouter', 'deepseek'))`);
+        } catch(e) {
+            console.error("Failed to update api_providers check constraint", e);
+        }
     }
 
     console.log("Database tables initialized successfully");
@@ -467,6 +455,7 @@ export interface UserUsageRecord {
   outputTokens: number;
   cost: number;
   balanceAfter: number;
+  balance: number;
 }
 
 export async function getOrCreateModelPrices(
@@ -590,38 +579,21 @@ export async function updateUserBalance(userId: string, balance: number) {
 export const pool = {
   connect: async () => {
     if (isVercel) {
-      return {
-        query: async (text: string, params?: any[]) => {
-          const client = await getVercelClient();
-          const result = await client.query({
-            text,
-            values: params || [],
-          });
-          return result;
-        },
-        release: () => { },
-      };
+      // Vercel Postgres pool handles connection automatically via db.connect() if needed,
+      // but db.query() is preferred. For compatibility with pool-style usage:
+      const client = await db.connect();
+      return client; 
     } else {
       return (pgPool || (getClient() as Pool)).connect();
     }
   },
   query: async (text: string, params?: any[]) => {
-    if (isVercel) {
-      const client = await getVercelClient();
-      return client.query({
-        text,
-        values: params || [],
-      });
-    } else {
-      return (pgPool || (getClient() as Pool)).query(text, params);
-    }
+    return query(text, params);
   },
   end: async () => {
     if (isVercel) {
-      if (vercelPool?.client) {
-        await vercelPool.client.end();
-        vercelPool.isConnected = false;
-      }
+       // db pool doesn't strictly need manual ending in serverless, but if we opened a client via connect:
+       // The VercelClient returned by db.connect() has release().
     } else if (pgPool) {
       await pgPool.end();
     }
