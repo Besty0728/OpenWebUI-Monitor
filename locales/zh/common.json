@@ -325,5 +325,26 @@
     },
     "exceedsMaxValue": "输入值不能超过 {{max}}",
     "balanceExceedsLimit": "余额超出最大限制"
+  },
+  "globalai": {
+    "title": "API 余额",
+    "description": "监控各服务商的 API 额度与使用情况。",
+    "refresh": "刷新",
+    "provider": "服务商：GlobalAI",
+    "providerGptoai": "服务商：GPTOAI",
+    "providerOpenRouter": "服务商：OpenRouter",
+    "totalQuota": "当前余额",
+    "usedQuota": "历史消耗",
+    "requests": "请求次数",
+    "userProfile": "账户信息",
+    "addProvider": "添加服务商",
+    "comingSoon": "敬请期待"
+  },
+  "apiBalance": {
+    "providerName": "服务商名称",
+    "providerType": "服务商类型",
+    "addProviderDesc": "添加模型服务商",
+    "confirmDelete": "确定要删除这个服务商吗？",
+    "official": "官网"
   }
 }

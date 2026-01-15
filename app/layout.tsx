@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   description: "Monitor and analyze your OpenWebUI usage data",
 };
 
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+
 export default function RootLayout({
   children,
 }: {
@@ -30,14 +32,16 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body>
-        <div id="modal-root" className="relative z-[100]" />
-        <I18nProvider>
-          <AuthCheck>
-            <Header />
-            {children}
-          </AuthCheck>
-          <Toaster />
-        </I18nProvider>
+        <AntdRegistry>
+          <div id="modal-root" className="relative z-[100]" />
+          <I18nProvider>
+            <AuthCheck>
+              <Header />
+              {children}
+            </AuthCheck>
+            <Toaster />
+          </I18nProvider>
+        </AntdRegistry>
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 import { query } from "./client";
 import { ensureUserTableExists } from "./users";
+import { ensureProvidersTableExists } from "./providers";
 import { ModelPrice, updateModelPrice } from "./client";
 
 async function ensureModelPricesTableExists() {
@@ -42,6 +43,7 @@ async function ensureModelPricesTableExists() {
 export async function ensureTablesExist() {
   await ensureModelPricesTableExists();
   await ensureUserTableExists();
+  await ensureProvidersTableExists();
 }
 
 export async function getOrCreateModelPrice(

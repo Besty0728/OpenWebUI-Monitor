@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { createRoot } from "react-dom/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { FiDatabase, FiUsers, FiBarChart2 } from "react-icons/fi";
+import { FiDatabase, FiUsers, FiBarChart2, FiGlobe } from "react-icons/fi";
 
 export default function Header() {
   const { t, i18n } = useTranslation("common");
@@ -255,6 +255,13 @@ export default function Header() {
       label: t("home.features.stats.title"),
       color: "from-emerald-500/10 to-teal-500/10",
       hoverColor: "group-hover:text-emerald-600",
+    },
+    {
+      path: "/api-balance",
+      icon: <FiGlobe className="w-5 h-5" />,
+      label: t("globalai.title"),
+      color: "from-purple-500/10 to-violet-500/10",
+      hoverColor: "group-hover:text-purple-600",
     },
   ];
 

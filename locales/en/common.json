@@ -323,5 +323,26 @@
       "usageRecord": "Usage record",
       "exportRecord": "Export record"
     }
+  },
+  "globalai": {
+    "title": "API Balance",
+    "description": "Monitor API quota and usage across providers.",
+    "refresh": "Refresh",
+    "provider": "Provider: GlobalAI",
+    "providerGptoai": "Provider: GPTOAI",
+    "providerOpenRouter": "Provider: OpenRouter",
+    "totalQuota": "Current Balance",
+    "usedQuota": "History Usage",
+    "requests": "Requests",
+    "userProfile": "Account Info",
+    "addProvider": "Add Provider",
+    "comingSoon": "Coming Soon"
+  },
+  "apiBalance": {
+    "providerName": "Provider Name",
+    "providerType": "Provider Type",
+    "addProviderDesc": "Add model provider",
+    "confirmDelete": "Are you sure you want to delete this provider?",
+    "official": "Official"
   }
 }

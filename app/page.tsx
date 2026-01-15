@@ -20,7 +20,7 @@ export default function HomePage() {
     const checkUpdate = async () => {
       try {
         const response = await fetch(
-          "https://api.github.com/repos/variantconst/openwebui-monitor/releases/latest"
+          "https://api.github.com/repos/Besty0728/OpenWebUI-Monitor/releases/latest"
         );
         const data = await response.json();
         const latestVer = data.tag_name;
@@ -46,7 +46,7 @@ export default function HomePage() {
 
   const handleUpdate = () => {
     window.open(
-      "https://github.com/VariantConst/OpenWebUI-Monitor/releases/latest",
+      "https://github.com/Besty0728/OpenWebUI-Monitor/releases/latest",
       "_blank"
     );
     setIsUpdateVisible(false);
