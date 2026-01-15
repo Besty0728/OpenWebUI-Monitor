@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FiDatabase, FiUsers, FiBarChart2, FiGithub } from "react-icons/fi";
+import { Wallet } from "lucide-react";
 import { CloseOutlined } from "@ant-design/icons";
 import { APP_VERSION } from "@/lib/version";
 import { message } from "antd";
@@ -141,6 +142,15 @@ export default function HomePage() {
                     lightColor: "bg-emerald-50/50",
                     borderColor: "border-emerald-200/20",
                     iconColor: "text-emerald-500/70",
+                  {
+                    path: "/api-balance",
+                    icon: <Wallet className="w-6 h-6" />,
+                    title: t("home.features.balance.title"),
+                    desc: t("home.features.balance.description"),
+                    gradient: "from-amber-500/80 to-orange-500/80",
+                    lightColor: "bg-amber-50/50",
+                    borderColor: "border-amber-200/20",
+                    iconColor: "text-amber-500/70",
                   },
                 ].map((item, index) => (
                   <Link
@@ -218,16 +228,39 @@ export default function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="py-8 text-center"
+          className="py-8 text-center space-y-2"
         >
-          <a
-            href="https://github.com/VariantConst/OpenWebUI-Monitor"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex p-2 text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <FiGithub className="w-6 h-6" />
-          </a>
+          <div className="flex items-center justify-center gap-4 text-sm text-slate-500">
+            <a
+              href="https://blog.micostar.cc"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-slate-800 transition-colors font-medium border-b border-transparent hover:border-slate-800"
+            >
+              Betsy Blog
+            </a>
+            <span>•</span>
+            <a
+              href="https://github.com/Besty0728/OpenWebUI-Monitor"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-slate-800 transition-colors"
+            >
+              <FiGithub className="w-4 h-4" />
+              <span>Our Repository</span>
+            </a>
+          </div>
+          <div className="text-xs text-slate-400">
+            Based on{" "}
+            <a
+              href="https://github.com/VariantConst/OpenWebUI-Monitor"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-slate-600 transition-colors"
+            >
+              Original Repository
+            </a>
+          </div>
         </motion.div>
       </motion.div>
 

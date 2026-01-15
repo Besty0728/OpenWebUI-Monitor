@@ -74,6 +74,10 @@
       "stats": {
         "title": "Usage",
         "description": "Statistics & Visualization"
+      },
+      "balance": {
+        "title": "API Balance",
+        "description": "API Balance Monitoring"
       }
     }
   },

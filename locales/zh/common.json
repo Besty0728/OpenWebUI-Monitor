@@ -74,6 +74,10 @@
       "stats": {
         "title": "使用统计",
         "description": "使用统计数据和可视化"
+      },
+      "balance": {
+        "title": "API 余额",
+        "description": "API 余额监控与服务商管理"
       }
     }
   },
