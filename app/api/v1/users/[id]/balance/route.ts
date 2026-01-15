@@ -4,7 +4,7 @@ import { verifyApiToken } from "@/lib/auth";
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const authError = verifyApiToken(req);
   if (authError) {
@@ -13,7 +13,7 @@ export async function PUT(
 
   try {
     const { balance } = await req.json();
-    const userId = params.id;
+    const { id: userId } = await params;
 
     console.log(`Updating balance for user ${userId} to ${balance}`);
 
