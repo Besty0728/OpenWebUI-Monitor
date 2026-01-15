@@ -16,8 +16,25 @@
 
 - 为 OpenWebUI 中的每个模型设置价格；
 - 为每个用户设置余额，根据对话消耗 tokens 和模型价格扣除，并在每条聊天末尾提示；
-- 查看用户使用数据和可视化。
 - 一键测试所有模型的可用性。
+
+## 特色功能 (定制版)
+
+本版本包含独家增强功能，旨在提供更好的管理和监控体验：
+
+1.  **统一 API 余额监控**：
+    - 支持 **NewAPI**、**OpenRouter**、**DeepSeek** 等多渠道聚合。
+    - 可视化配额和使用情况，支持自动货币转换 (USD/CNY)。
+    - **卡片拖拽**：支持通过拖拽轻松排序提供商。
+    - **在线编辑**：直接在 UI 中添加、编辑或删除提供商。
+
+2.  **公开状态页**：
+    - 提供安全的只读页面 `/status`，无需登录即可查看余额。
+    - 自动过滤敏感 API 密钥和配置信息。
+
+3.  **增强的 UI/UX**：
+    - 精美的卡片设计，带有自定义 SVG 图标（支持深色/浅色模式）。
+    - 响应式布局，流畅的动画效果。
 
 ## 部署
 
@@ -85,4 +102,4 @@ sudo docker compose up -d
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=VariantConst/OpenWebUI-Monitor&type=Date)](https://star-history.com/#VariantConst/OpenWebUI-Monitor&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Besty0728/OpenWebUI-Monitor&type=Date)](https://star-history.com/#Besty0728/OpenWebUI-Monitor&Date)

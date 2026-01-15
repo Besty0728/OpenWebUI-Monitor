@@ -19,6 +19,24 @@ A monitoring dashboard for OpenWebUI that tracks usage and manages user balances
 - View user data and visualizations;
 - One-click test for all model availability.
 
+## Special Features (Custom Version)
+
+This version includes exclusive enhancements for better management and monitoring:
+
+1.  **Unified API Balance Monitoring**:
+    - Support for **NewAPI**, **OpenRouter**, **DeepSeek**, and more.
+    - Visualize quotas and usage with auto-currency conversion (USD/CNY).
+    - **Draggable Cards**: Reorder providers easily with drag-and-drop.
+    - **Editable Providers**: Add, edit, or remove providers directly from the UI.
+
+2.  **Public Status Page**:
+    - A secure, read-only page at `/status` to check balances without logging in.
+    - Automatically filters out sensitive API keys and configs.
+
+3.  **Enhanced UI/UX**:
+    - Polished card designs with custom SVG icons (Light/Dark mode support).
+    - Responsive layout with smooth animations.
+
 ## Deployment
 
 Supports one-click deployment on Vercel [![Deploy on Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FVariantConst%2FOpenWebUI-Monitor&project-name=openwebui-monitor&repository-name=openwebui-monitor&env=OPENWEBUI_DOMAIN,OPENWEBUI_API_KEY,ACCESS_TOKEN,API_KEY) and Docker deployment. **See [Deployment Guide](https://github.com/VariantConst/OpenWebUI-Monitor/blob/main/resources/tutorials/en/deployment_guide.md) for details. See [Deployment Guide](https://github.com/VariantConst/OpenWebUI-Monitor/blob/main/resources/tutorials/en/deployment_guide.md) for details. See [Deployment Guide](https://github.com/VariantConst/OpenWebUI-Monitor/blob/main/resources/tutorials/en/deployment_guide.md) for details.**
@@ -85,4 +103,6 @@ OpenWebUI Monitor will only start tracking a user’s information after the user
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=VariantConst/OpenWebUI-Monitor&type=Date)](https://star-history.com/#VariantConst/OpenWebUI-Monitor&Date)
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Besty0728/OpenWebUI-Monitor&type=Date)](https://star-history.com/#Besty0728/OpenWebUI-Monitor&Date)

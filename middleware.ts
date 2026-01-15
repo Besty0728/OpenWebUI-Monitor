@@ -66,6 +66,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   } else if (pathname.startsWith("/api/init")) {
     return NextResponse.next();
+  } else if (pathname.startsWith("/api/status")) {
+    return NextResponse.next();
   }
 
   return NextResponse.next();
