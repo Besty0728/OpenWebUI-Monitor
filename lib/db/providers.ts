@@ -36,8 +36,41 @@ export async function getAllProviders(): Promise<Provider[]> {
   }
   
   const { query } = await import("./client");
-  const result = await query(`SELECT * FROM api_providers ORDER BY created_at ASC`);
+  const result = await query(`SELECT * FROM api_providers ORDER BY sort_order ASC, created_at ASC`);
   return result.rows.map(rowToProvider);
+}
+
+// Update provider order
+export async function updateProviderOrder(updates: { id: string; sortOrder: number }[]): Promise<boolean> {
+  if (isMockMode()) {
+    updates.forEach(({ id, sortOrder }) => {
+      const index = mockProviders.findIndex(p => p.id === id);
+      if (index !== -1) {
+        mockProviders[index].sortOrder = sortOrder;
+      }
+    });
+    return true;
+  }
+
+  const { query } = await import("./client");
+  
+  // Use a transaction for batch updates
+  await query("BEGIN");
+  
+  try {
+    for (const { id, sortOrder } of updates) {
+      await query(
+        `UPDATE api_providers SET sort_order = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+        [sortOrder, id]
+      );
+    }
+    await query("COMMIT");
+    return true;
+  } catch (error) {
+    await query("ROLLBACK");
+    console.error("Failed to update provider order:", error);
+    return false;
+  }
 }
 
 // Get provider by ID
@@ -67,6 +100,7 @@ export async function createProvider(
       config,
       icon,
       enabled: true,
+      sortOrder: mockProviders.length, // Append to end
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -75,11 +109,16 @@ export async function createProvider(
   }
   
   const { query } = await import("./client");
+  
+  // Get max sort_order to append to end
+  const maxOrderResult = await query(`SELECT MAX(sort_order) as max_order FROM api_providers`);
+  const nextOrder = (maxOrderResult.rows[0]?.max_order ?? -1) + 1;
+
   const result = await query(
-    `INSERT INTO api_providers (name, type, config, icon, enabled) 
-     VALUES ($1, $2, $3, $4, true) 
+    `INSERT INTO api_providers (name, type, config, icon, enabled, sort_order) 
+     VALUES ($1, $2, $3, $4, true, $5) 
      RETURNING *`,
-    [name, type, JSON.stringify(config), icon || null]
+    [name, type, JSON.stringify(config), icon || null, nextOrder]
   );
   return rowToProvider(result.rows[0]);
 }

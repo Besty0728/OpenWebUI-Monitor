@@ -405,6 +405,7 @@ export async function ensureTablesExist() {
           icon TEXT,
           config JSONB NOT NULL DEFAULT '{}',
           enabled BOOLEAN DEFAULT true,
+          sort_order INTEGER DEFAULT 0,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
@@ -415,6 +416,22 @@ export async function ensureTablesExist() {
              await query(`ALTER TABLE api_providers ADD CONSTRAINT api_providers_type_check CHECK (type IN ('newapi', 'openrouter', 'deepseek'))`);
         } catch(e) {
             console.error("Failed to update api_providers check constraint", e);
+        }
+
+        try {
+             await query(`
+               DO $$ 
+               BEGIN 
+                 BEGIN
+                   ALTER TABLE api_providers 
+                   ADD COLUMN sort_order INTEGER DEFAULT 0;
+                 EXCEPTION 
+                   WHEN duplicate_column THEN NULL;
+                 END;
+               END $$;
+             `);
+        } catch(e) {
+            console.error("Failed to add sort_order column", e);
         }
     }
 

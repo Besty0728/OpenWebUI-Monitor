@@ -142,6 +142,7 @@ export default function HomePage() {
                     lightColor: "bg-emerald-50/50",
                     borderColor: "border-emerald-200/20",
                     iconColor: "text-emerald-500/70",
+                  },
                   {
                     path: "/api-balance",
                     icon: <Wallet className="w-6 h-6" />,

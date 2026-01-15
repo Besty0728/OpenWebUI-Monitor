@@ -18,6 +18,7 @@ export interface Provider {
   icon?: string; // Custom icon URL or icon name
   config: ProviderConfig;
   enabled: boolean;
+  sortOrder: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -48,6 +49,7 @@ export function rowToProvider(row: any): Provider {
     icon: row.icon || undefined,
     config: typeof row.config === "string" ? JSON.parse(row.config) : row.config,
     enabled: row.enabled,
+    sortOrder: row.sort_order || 0,
     createdAt: row.created_at ? new Date(row.created_at) : undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
   };
@@ -61,5 +63,6 @@ export function providerToRow(provider: Omit<Provider, "id" | "createdAt" | "upd
     icon: provider.icon || null,
     config: JSON.stringify(provider.config),
     enabled: provider.enabled,
+    sort_order: provider.sortOrder || 0,
   };
 }
