@@ -40,6 +40,7 @@ export default function Header() {
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState(t("common.loading"));
 
   const handleLanguageChange = async (newLang: string) => {
     await i18n.changeLanguage(newLang);
@@ -47,37 +48,14 @@ export default function Header() {
   };
 
   const isTokenPage = pathname === "/token";
-
-  if (isTokenPage) {
-    return (
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16">
-          <div className="h-full flex items-center justify-between">
-            <div className="text-xl font-semibold bg-gradient-to-r from-gray-900 via-indigo-800 to-gray-900 bg-clip-text text-transparent">
-              {t("common.appName")}
-            </div>
-            <button
-              className="p-2 rounded-lg hover:bg-gray-50/80 transition-colors relative group"
-              onClick={() =>
-                handleLanguageChange(i18n.language === "zh" ? "en" : "zh")
-              }
-            >
-              <Globe className="w-5 h-5 text-gray-600 group-hover:text-blue-500 transition-colors" />
-              <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-medium bg-gray-100 text-gray-600 rounded-full border border-gray-200 shadow-sm px-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {i18n.language === "zh"
-                  ? t("header.language.zh")
-                  : t("header.language.en")}
-              </span>
-            </button>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
-  const [apiKey, setApiKey] = useState(t("common.loading"));
+  const isStatusPage = pathname === "/status";
+  const isPublicPage = isTokenPage || isStatusPage;
 
   useEffect(() => {
+    if (isPublicPage) {
+      return;
+    }
+
     const token = localStorage.getItem("access_token");
     setAccessToken(token);
 
@@ -109,7 +87,34 @@ export default function Header() {
         localStorage.removeItem("access_token");
         router.push("/token");
       });
-  }, [router, t]);
+  }, [isPublicPage, router, t]);
+
+  if (isPublicPage) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16">
+          <div className="h-full flex items-center justify-between">
+            <div className="text-xl font-semibold bg-gradient-to-r from-gray-900 via-indigo-800 to-gray-900 bg-clip-text text-transparent">
+              {t("common.appName")}
+            </div>
+            <button
+              className="p-2 rounded-lg hover:bg-gray-50/80 transition-colors relative group"
+              onClick={() =>
+                handleLanguageChange(i18n.language === "zh" ? "en" : "zh")
+              }
+            >
+              <Globe className="w-5 h-5 text-gray-600 group-hover:text-blue-500 transition-colors" />
+              <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-medium bg-gray-100 text-gray-600 rounded-full border border-gray-200 shadow-sm px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {i18n.language === "zh"
+                  ? t("header.language.zh")
+                  : t("header.language.en")}
+              </span>
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   const handleCopyApiKey = () => {
     const token = localStorage.getItem("access_token");
@@ -453,6 +458,7 @@ export default function Header() {
                   <button
                     onClick={() => setIsMenuOpen(false)}
                     className="p-1.5 rounded-lg hover:bg-gray-100/80 transition-all duration-200"
+                    aria-label="Close menu"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>

@@ -13,7 +13,7 @@ let dbInitialized = false;
 export default function AuthCheck({ children }: { children: React.ReactNode }) {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isPublicRoute, setIsPublicRoute] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const checkingRef = useRef(false);
@@ -34,6 +34,10 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
 
     initDb();
   }, []);
+
+  useEffect(() => {
+    setIsPublicRoute(pathname === "/token" || pathname === "/status");
+  }, [pathname]);
 
   const checkAuth = useCallback(async () => {
     // Skip if on token page or status page (public pages)
@@ -91,18 +95,14 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
   }, [router, pathname]);
 
   useEffect(() => {
-    setIsMounted(true);
     checkAuth();
   }, [checkAuth]);
 
-  // Prevent hydration mismatch by not rendering on server
-  if (!isMounted) {
-    return <>{children}</>;
-  }
+  const shouldHide = !isPublicRoute && (isLoading || !isAuthorized);
 
-  if (isLoading || !isAuthorized) {
-    return null;
-  }
-
-  return <>{children}</>;
+  return (
+    <div style={{ visibility: shouldHide ? "hidden" : "visible" }}>
+      {children}
+    </div>
+  );
 }
