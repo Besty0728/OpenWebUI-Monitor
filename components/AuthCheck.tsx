@@ -35,8 +35,8 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
   }, []);
 
   const checkAuth = useCallback(async () => {
-    // Skip if on token page
-    if (pathname === "/token") {
+    // Skip if on token page or status page (public pages)
+    if (pathname === "/token" || pathname === "/status") {
       setIsLoading(false);
       setIsAuthorized(true);
       return;
