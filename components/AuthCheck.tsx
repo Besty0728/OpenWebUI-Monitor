@@ -13,6 +13,7 @@ let dbInitialized = false;
 export default function AuthCheck({ children }: { children: React.ReactNode }) {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const checkingRef = useRef(false);
@@ -90,8 +91,14 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
   }, [router, pathname]);
 
   useEffect(() => {
+    setIsMounted(true);
     checkAuth();
   }, [checkAuth]);
+
+  // Prevent hydration mismatch by not rendering on server
+  if (!isMounted) {
+    return <>{children}</>;
+  }
 
   if (isLoading || !isAuthorized) {
     return null;
