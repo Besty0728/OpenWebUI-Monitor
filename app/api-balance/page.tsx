@@ -214,6 +214,7 @@ const SortableProviderCard = ({
 
 export default function APIBalancePage() {
   const { t } = useTranslation("common");
+  const [mounted, setMounted] = useState(false);
   const [providers, setProviders] = useState<ProviderWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -284,8 +285,13 @@ export default function APIBalancePage() {
   };
 
   useEffect(() => {
+    setMounted(true);
     fetchData();
   }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
