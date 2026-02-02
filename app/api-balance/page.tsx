@@ -459,14 +459,14 @@ export default function APIBalancePage() {
 
     if (cardError) {
       return (
-        <Card className="flex flex-col justify-between h-[280px] border-red-200">
+        <Card className="flex flex-col justify-between h-[280px] border-red-200 relative group overflow-hidden">
            {/* Add drag handle or make header draggable */}
-          <div className="absolute top-2 right-2 flex gap-1 z-20">
-             <Button variant="ghost" size="icon" onClick={() => handleEdit(provider)}>
-                <Settings className="w-4 h-4 text-gray-400" />
+          <div className="absolute top-4 right-4 flex gap-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+             <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/50 backdrop-blur-sm hover:bg-white/80 dark:bg-black/20 dark:hover:bg-black/40" onClick={(e) => { e.stopPropagation(); handleEdit(provider); }}>
+                <Settings className="w-4 h-4 text-gray-500" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => handleDeleteProvider(provider.id)}>
-              <Trash2 className="w-4 h-4 text-red-400" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/50 backdrop-blur-sm hover:bg-red-50 dark:bg-black/20 dark:hover:bg-red-900/40" onClick={(e) => { e.stopPropagation(); handleDeleteProvider(provider.id); }}>
+              <Trash2 className="w-4 h-4 text-red-500" />
             </Button>
           </div>
           
@@ -479,7 +479,8 @@ export default function APIBalancePage() {
             </CardHeader>
             <CardContent className="flex flex-col justify-center items-center flex-1 text-center p-4">
                 <AlertCircle className="w-8 h-8 text-red-400 mb-2" />
-                <p className="text-sm text-muted-foreground mb-4">{cardError}</p>
+                <p className="text-sm text-red-500 font-medium mb-1">Provider Error</p>
+                <p className="text-xs text-muted-foreground line-clamp-4 break-all px-2">{cardError}</p>
             </CardContent>
           </div>
         </Card>
