@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProviderById } from "@/lib/db/providers";
-import { ProviderType } from "@/lib/providers";
+
+export const runtime = 'edge';
+
+const BROWSER_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "application/json, text/plain, */*",
+  "Accept-Language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
+  "Cache-Control": "no-cache",
+  "Pragma": "no-cache",
+  "Referer": "https://google.com",
+};
 
 // Fetch balance for a specific provider
 export async function GET(
@@ -61,7 +71,7 @@ async function fetchNewAPIBalance(config: any, providerName: string) {
   const response = await fetch(apiUrl, {
     method: "GET",
     headers: {
-      "Content-Type": "application/json",
+      ...BROWSER_HEADERS,
       Authorization: `Bearer ${apiToken}`,
       "New-Api-User": userId,
     },
@@ -105,6 +115,7 @@ async function fetchOpenRouterBalance(config: any) {
   const response = await fetch("https://openrouter.ai/api/v1/credits", {
     method: "GET",
     headers: {
+      ...BROWSER_HEADERS,
       Authorization: `Bearer ${apiKey}`,
     },
   });
@@ -153,7 +164,7 @@ async function fetchDeepSeekBalance(config: any) {
   const response = await fetch("https://api.deepseek.com/user/balance", {
     method: "GET",
     headers: {
-      Accept: "application/json",
+      ...BROWSER_HEADERS,
       Authorization: `Bearer ${apiKey}`,
     },
   });
