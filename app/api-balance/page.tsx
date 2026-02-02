@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, RefreshCw, Wallet, Activity, Plus, Database, Globe, Trash2, Settings, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,6 +59,127 @@ interface ProviderWithBalance {
   loading: boolean;
 }
 
+interface ProviderForm {
+  name: string;
+  type: "newapi" | "openrouter" | "deepseek";
+  icon: string;
+  config: {
+    apiUrl: string;
+    apiToken: string;
+    userId: string;
+    apiKey: string;
+  };
+}
+
+const ProviderDialogContent = ({
+  isEdit,
+  providerForm,
+  setProviderForm,
+  onCancel,
+  onSubmit,
+  t
+}: {
+  isEdit: boolean;
+  providerForm: ProviderForm;
+  setProviderForm: (form: ProviderForm) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+  t: any;
+}) => (
+  <DialogContent className="sm:max-w-[425px]">
+    <DialogHeader>
+      <DialogTitle>{isEdit ? t("common.edit") : t("globalai.addProvider")}</DialogTitle>
+      <DialogDescription className="sr-only">
+        {isEdit ? "Edit provider configuration" : "Add a new API provider configuration"}
+      </DialogDescription>
+    </DialogHeader>
+    <div className="grid gap-4 py-4">
+      <div className="grid gap-2">
+        <Label htmlFor="name">{t("apiBalance.providerName")}</Label>
+        <Input
+          id="name"
+          value={providerForm.name}
+          onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value })}
+          placeholder="e.g. GlobalAI"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label>{t("apiBalance.providerType")}</Label>
+        <Select
+          value={providerForm.type}
+          onValueChange={(value: "newapi" | "openrouter" | "deepseek") => setProviderForm({ ...providerForm, type: value })}
+          disabled={isEdit} // Disable type change on edit
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newapi">NewAPI</SelectItem>
+            <SelectItem value="openrouter">OpenRouter</SelectItem>
+            <SelectItem value="deepseek">DeepSeek</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {providerForm.type === "newapi" ? (
+        <>
+          <div className="grid gap-2">
+            <Label htmlFor="apiUrl">API URL</Label>
+            <Input
+              id="apiUrl"
+              value={providerForm.config.apiUrl}
+              onChange={(e) => setProviderForm({
+                ...providerForm,
+                config: { ...providerForm.config, apiUrl: e.target.value }
+              })}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="apiToken">API Token</Label>
+            <Input
+              id="apiToken"
+              type="password"
+              value={providerForm.config.apiToken}
+              onChange={(e) => setProviderForm({
+                ...providerForm,
+                config: { ...providerForm.config, apiToken: e.target.value }
+              })}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="userId">User ID</Label>
+            <Input
+              id="userId"
+              value={providerForm.config.userId}
+              onChange={(e) => setProviderForm({
+                ...providerForm,
+                config: { ...providerForm.config, userId: e.target.value }
+              })}
+            />
+          </div>
+        </>
+      ) : (
+        <div className="grid gap-2">
+          <Label htmlFor="apiKey">API Key</Label>
+          <Input
+            id="apiKey"
+            type="password"
+            value={providerForm.config.apiKey}
+            onChange={(e) => setProviderForm({
+              ...providerForm,
+              config: { ...providerForm.config, apiKey: e.target.value }
+            })}
+          />
+        </div>
+      )}
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onClick={onCancel}>{t("common.cancel")}</Button>
+      <Button onClick={onSubmit}>{t("common.save")}</Button>
+    </DialogFooter>
+  </DialogContent>
+);
+
 // Sortable Item Component
 const SortableProviderCard = ({ 
   item, 
@@ -109,7 +230,7 @@ export default function APIBalancePage() {
 
   // Form state for adding/editing provider
   const [editingProviderId, setEditingProviderId] = useState<string | null>(null);
-  const [providerForm, setProviderForm] = useState({
+  const [providerForm, setProviderForm] = useState<ProviderForm>({
     name: "",
     type: "newapi" as "newapi" | "openrouter" | "deepseek",
     icon: "",
@@ -457,86 +578,6 @@ export default function APIBalancePage() {
     );
   };
 
-  const ProviderDialogContent = ({ isEdit }: { isEdit: boolean }) => (
-    <DialogContent className="sm:max-w-[425px]">
-      <DialogHeader>
-        <DialogTitle>{isEdit ? t("common.edit") : t("globalai.addProvider")}</DialogTitle>
-      </DialogHeader>
-      <div className="grid gap-4 py-4">
-        <div className="grid gap-2">
-          <Label htmlFor="name">{t("apiBalance.providerName")}</Label>
-          <Input
-            id="name"
-            value={providerForm.name}
-            onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value })}
-            placeholder="e.g. GlobalAI"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label>{t("apiBalance.providerType")}</Label>
-          <Select
-            value={providerForm.type}
-            onValueChange={(value: "newapi" | "openrouter" | "deepseek") => setProviderForm({ ...providerForm, type: value })}
-            disabled={isEdit} // Disable type change on edit
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newapi">NewAPI</SelectItem>
-              <SelectItem value="openrouter">OpenRouter</SelectItem>
-              <SelectItem value="deepseek">DeepSeek</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {providerForm.type === "newapi" ? (
-          <>
-            <div className="grid gap-2">
-              <Label htmlFor="apiUrl">API URL</Label>
-              <Input
-                id="apiUrl"
-                value={providerForm.config.apiUrl}
-                onChange={(e) => setProviderForm({ ...providerForm, config: { ...providerForm.config, apiUrl: e.target.value } })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="apiToken">API Token</Label>
-              <Input
-                id="apiToken"
-                type="password"
-                value={providerForm.config.apiToken}
-                onChange={(e) => setProviderForm({ ...providerForm, config: { ...providerForm.config, apiToken: e.target.value } })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="userId">User ID</Label>
-              <Input
-                id="userId"
-                value={providerForm.config.userId}
-                onChange={(e) => setProviderForm({ ...providerForm, config: { ...providerForm.config, userId: e.target.value } })}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="grid gap-2">
-            <Label htmlFor="apiKey">API Key</Label>
-            <Input
-              id="apiKey"
-              type="password"
-              value={providerForm.config.apiKey}
-              onChange={(e) => setProviderForm({ ...providerForm, config: { ...providerForm.config, apiKey: e.target.value } })}
-            />
-          </div>
-        )}
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={() => isEdit ? setIsEditDialogOpen(false) : setIsAddDialogOpen(false)}>{t("common.cancel")}</Button>
-        <Button onClick={() => handleSubmitProvider(isEdit)}>{t("common.save")}</Button>
-      </DialogFooter>
-    </DialogContent>
-  );
-
   return (
     <div className="container mx-auto py-8 space-y-8 mt-16 px-4 sm:px-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -564,11 +605,25 @@ export default function APIBalancePage() {
                 {t("globalai.addProvider")}
               </Button>
             </DialogTrigger>
-            <ProviderDialogContent isEdit={false} />
+            <ProviderDialogContent 
+              isEdit={false} 
+              providerForm={providerForm}
+              setProviderForm={setProviderForm}
+              onCancel={() => setIsAddDialogOpen(false)}
+              onSubmit={() => handleSubmitProvider(false)}
+              t={t}
+            />
           </Dialog>
 
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-             <ProviderDialogContent isEdit={true} />
+             <ProviderDialogContent 
+              isEdit={true} 
+              providerForm={providerForm}
+              setProviderForm={setProviderForm}
+              onCancel={() => setIsEditDialogOpen(false)}
+              onSubmit={() => handleSubmitProvider(true)}
+              t={t}
+            />
           </Dialog>
         </div>
       </div>
