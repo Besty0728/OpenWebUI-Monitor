@@ -123,7 +123,8 @@ export async function GET(req: Request) {
   try {
     await ensureTablesExist();
 
-    const domain = process.env.OPENWEBUI_DOMAIN;
+    // 优先使用 OPENWEBUI_MODELS_DOMAIN，用于绕过人机验证
+    const domain = process.env.OPENWEBUI_MODELS_DOMAIN || process.env.OPENWEBUI_DOMAIN;
     if (!domain) {
       throw new Error("OPENWEBUI_DOMAIN environment variable is not set.");
     }

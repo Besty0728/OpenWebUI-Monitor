@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:cloud.tencent.com)",
+      "WebFetch(domain:www.tencentcloud.com)",
+      "Bash(curl:*)",
+      "Bash(for i in 1 2 3)",
+      "Bash(do curl -o /dev/null -s -w \"Test $i - TTFB: %{time_starttransfer}s, Total: %{time_total}s\\\\n\" https://ai0728.com.cn -m 10)",
+      "Bash(done)",
+      "Bash(do curl -o /dev/null -s -w \"Test $i - TTFB: %{time_starttransfer}s, Total: %{time_total}s\\\\n\" https://ai.micostar.cc -m 10)"
+    ]
+  }
+}
