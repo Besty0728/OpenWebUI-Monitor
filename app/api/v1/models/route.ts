@@ -145,12 +145,28 @@ export async function GET(req: Request) {
       const apiUrl = domain.replace(/\/+$/, "") + "/api/models";
       console.log("[Models API] Fetching from:", apiUrl);
 
-      const response = await fetch(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${process.env.OPENWEBUI_API_KEY}`,
-          Accept: "application/json",
-        },
-      });
+      // 构建请求头 - 尝试绕过 Cloudflare Bot 检查
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${process.env.OPENWEBUI_API_KEY}`,
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+      };
+
+      // 如果配置了 Cloudflare Access Token，添加到请求头
+      if (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET) {
+        headers["CF-Access-Client-Id"] = process.env.CF_ACCESS_CLIENT_ID;
+        headers["CF-Access-Client-Secret"] = process.env.CF_ACCESS_CLIENT_SECRET;
+      }
+
+      const response = await fetch(apiUrl, { headers });
 
       if (!response.ok) {
         console.error("[Models API] Fetch failed - Status:", response.status);
