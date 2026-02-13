@@ -121,22 +121,29 @@ export async function GET(req: Request) {
   // -------------------------------
 
   try {
+    console.log("[Models API] Starting request...");
+    console.log("[Models API] Ensuring tables exist...");
     await ensureTablesExist();
+    console.log("[Models API] Tables checked/created successfully");
 
     // 优先使用 OPENWEBUI_MODELS_DOMAIN，用于绕过人机验证
     const domain = process.env.OPENWEBUI_MODELS_DOMAIN || process.env.OPENWEBUI_DOMAIN;
     if (!domain) {
+      console.error("[Models API] OPENWEBUI_DOMAIN is not set");
       throw new Error("OPENWEBUI_DOMAIN environment variable is not set.");
     }
+    console.log("[Models API] Using domain:", domain);
 
     const cacheKey = "models_list";
     const cachedData = cache.get(cacheKey) as ModelResponse | undefined;
     let data: ModelResponse;
 
     if (cachedData) {
+      console.log("[Models API] Using cached data");
       data = cachedData;
     } else {
       const apiUrl = domain.replace(/\/+$/, "") + "/api/models";
+      console.log("[Models API] Fetching from:", apiUrl);
 
       const response = await fetch(apiUrl, {
         headers: {
@@ -146,10 +153,11 @@ export async function GET(req: Request) {
       });
 
       if (!response.ok) {
-        console.error("API response status:", response.status);
-        console.error("API response text:", await response.text());
+        console.error("[Models API] Fetch failed - Status:", response.status);
+        console.error("[Models API] Response text:", await response.text());
         throw new Error(`Failed to fetch models: ${response.status}`);
       }
+      console.log("[Models API] Fetch successful");
 
       const responseText = await response.text();
       try {
@@ -189,6 +197,8 @@ export async function GET(req: Request) {
       });
     });
 
+    console.log("[Models API] Fetched", data.data.length, "models from OpenWebUI");
+    console.log("[Models API] Getting or creating model prices...");
     const modelsWithPrices = await getOrCreateModelPrices(
       data.data.map((item) => {
         let baseModelId = item.info?.base_model_id;
@@ -251,11 +261,13 @@ export async function GET(req: Request) {
 
     return NextResponse.json(validModels);
   } catch (error) {
-    console.error("Error fetching models:", error);
+    console.error("[Models API] Error details:", error);
+    console.error("[Models API] Error stack:", error instanceof Error ? error.stack : "No stack trace");
     return NextResponse.json(
       {
         error:
           error instanceof Error ? error.message : "Failed to fetch models",
+        details: error instanceof Error ? error.stack : String(error)
       },
       { status: 500 }
     );
