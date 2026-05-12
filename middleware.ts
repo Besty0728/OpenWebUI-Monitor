@@ -13,13 +13,15 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/v1/models") ||
     pathname.startsWith("/api/v1/panel") ||
     pathname.startsWith("/api/v1/config") ||
-    pathname.startsWith("/api/v1/users")
+    pathname.startsWith("/api/v1/users") ||
+    pathname.startsWith("/api/providers")
   ) {
     const token =
       pathname.startsWith("/api/v1/panel") ||
       pathname.startsWith("/api/v1/config") ||
       pathname.startsWith("/api/v1/users") ||
-      pathname.startsWith("/api/v1/models")
+      pathname.startsWith("/api/v1/models") ||
+      pathname.startsWith("/api/providers")
         ? ACCESS_TOKEN
         : API_KEY;
 

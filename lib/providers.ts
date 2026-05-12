@@ -23,6 +23,21 @@ export interface Provider {
   updatedAt?: Date;
 }
 
+// Placeholder returned to client in place of secret fields.
+// When PUT receives this value, the original DB value is preserved.
+export const MASKED_SECRET = "***";
+
+export function maskProviderConfig(config: ProviderConfig): ProviderConfig {
+  const masked: ProviderConfig = { ...config };
+  if (masked.apiToken) masked.apiToken = MASKED_SECRET;
+  if (masked.apiKey) masked.apiKey = MASKED_SECRET;
+  return masked;
+}
+
+export function maskProvider(provider: Provider): Provider {
+  return { ...provider, config: maskProviderConfig(provider.config) };
+}
+
 export interface ProviderBalance {
   id: number;
   username: string;

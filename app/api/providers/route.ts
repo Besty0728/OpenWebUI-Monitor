@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllProviders, createProvider, updateProvider, deleteProvider } from "@/lib/db/providers";
-import { ProviderType, ProviderConfig } from "@/lib/providers";
+import { getAllProviders, getProviderById, createProvider, updateProvider, deleteProvider } from "@/lib/db/providers";
+import { ProviderType, ProviderConfig, maskProvider, MASKED_SECRET } from "@/lib/providers";
 
-// GET all providers
+// GET all providers (with secrets masked)
 export async function GET() {
   try {
     const providers = await getAllProviders();
-    return NextResponse.json({ success: true, data: providers });
+    return NextResponse.json({ success: true, data: providers.map(maskProvider) });
   } catch (error: any) {
     console.error("Error fetching providers:", error);
     return NextResponse.json(
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const provider = await createProvider(name, type, config, icon);
-    return NextResponse.json({ success: true, data: provider });
+    return NextResponse.json({ success: true, data: maskProvider(provider) });
   } catch (error: any) {
     console.error("Error creating provider:", error);
     return NextResponse.json(
@@ -65,6 +65,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // If client sent masked placeholders for secrets, preserve the existing values.
+    if (updates.config) {
+      const existing = await getProviderById(id);
+      if (!existing) {
+        return NextResponse.json(
+          { success: false, error: "Provider not found" },
+          { status: 404 }
+        );
+      }
+      const incoming = updates.config as ProviderConfig;
+      const merged: ProviderConfig = { ...incoming };
+      if (merged.apiToken === MASKED_SECRET) merged.apiToken = existing.config.apiToken;
+      if (merged.apiKey === MASKED_SECRET) merged.apiKey = existing.config.apiKey;
+      updates.config = merged;
+    }
+
     const provider = await updateProvider(id, updates);
     if (!provider) {
       return NextResponse.json(
@@ -73,7 +89,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, data: provider });
+    return NextResponse.json({ success: true, data: maskProvider(provider) });
   } catch (error: any) {
     console.error("Error updating provider:", error);
     return NextResponse.json(

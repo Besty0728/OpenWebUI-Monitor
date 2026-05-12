@@ -249,7 +249,10 @@ export default function APIBalancePage() {
     setError("");
 
     try {
-      const res = await fetch("/api/providers");
+      const token = localStorage.getItem("access_token");
+      const authHeaders = { Authorization: `Bearer ${token}` };
+
+      const res = await fetch("/api/providers", { headers: authHeaders });
       const json = await res.json();
 
       if (!json.success) {
@@ -262,7 +265,7 @@ export default function APIBalancePage() {
       const providersWithBalances = await Promise.all(
         providerList.map(async (provider) => {
           try {
-            const balanceRes = await fetch(`/api/providers/${provider.id}?t=${Date.now()}`);
+            const balanceRes = await fetch(`/api/providers/${provider.id}?t=${Date.now()}`, { headers: authHeaders });
             if (balanceRes.ok) {
               const balance = await balanceRes.json();
               return { provider, balance, error: "", loading: false };
@@ -311,7 +314,10 @@ export default function APIBalancePage() {
         // Optimistic update done, now sync with server
         fetch("/api/providers/batch", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
           body: JSON.stringify({ items: orderUpdates }),
         }).catch(err => {
           console.error("Failed to save order:", err);
@@ -366,7 +372,10 @@ export default function APIBalancePage() {
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
         body: JSON.stringify(body),
       });
 
@@ -389,7 +398,10 @@ export default function APIBalancePage() {
     if (!confirm(t("apiBalance.confirmDelete"))) return;
 
     try {
-      const res = await fetch(`/api/providers?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/providers?id=${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+      });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
       fetchData();
